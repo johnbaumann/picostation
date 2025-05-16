@@ -1,10 +1,15 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
+#include "ff.h"
+
+#define MAX_LINES 2000 
+#define MAX_LENGTH 255
 
 const size_t c_fileNameLength = 255;
-
-class DirectoryListing {
+namespace picostation {
+class FileSystem {
   public:
     enum Enum { IDLE, GETDIRECTORY };
 
@@ -16,7 +21,7 @@ class DirectoryListing {
 
     void init();
     int getNumberofFileEntries(const char *dir);
-    void readDirectoryToBuffer(void *buffer, const char *path, const size_t offset, const unsigned int bufferSize = 2324);
+    void readDirectoryToBuffer(void *buffer, const char *path, const size_t offset, const unsigned int bufferSize);
     void setDirectory(const char *dir);
     
   private:
@@ -25,3 +30,4 @@ class DirectoryListing {
 
     Status m_status;
 };
+}

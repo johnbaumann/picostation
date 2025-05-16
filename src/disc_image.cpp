@@ -3,12 +3,13 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "f_util.h"
 #include "ff.h"
-#include "loaderImage.h"
+//#include "loaderImage.h"
 #include "logging.h"
 #include "picostation.h"
 #include "subq.h"
@@ -21,6 +22,10 @@
 #else
 #define DEBUG_PRINT(...) while (0)
 #endif
+
+extern const uint8_t  loaderImage[];
+extern const uint32_t loaderImageSize;
+
 
 struct MSF {
     int mm;
@@ -404,7 +409,7 @@ void picostation::DiscImage::readSector(void *buffer, const int sector, DataLoca
 void picostation::DiscImage::readSectorRAM(void *buffer, const int sector) {
     const int adjustedSector = sector - c_preGap;
     size_t targetOffset = adjustedSector * c_cdSamplesBytes;
-    if (targetOffset >= 0 && targetOffset <= sizeof(loaderImage) - c_cdSamplesBytes) {
+    if (targetOffset >= 0 && targetOffset <= loaderImageSize - c_cdSamplesBytes) {
         memcpy(buffer, &loaderImage[targetOffset], c_cdSamplesBytes);
     } else {
         buildSector(sector, static_cast<uint8_t *>(buffer), s_userData);

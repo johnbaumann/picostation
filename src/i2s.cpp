@@ -14,6 +14,7 @@
 #include "drive_mechanics.h"
 #include "f_util.h"
 #include "ff.h"
+#include "filesystem.h"
 #include "hardware/dma.h"
 #include "hardware/pio.h"
 #include "hw_config.h"
@@ -32,14 +33,14 @@
 #define DEBUG_PRINT(...) while (0)
 #endif
 
-const size_t c_fileNameLength = 255;
+//const size_t c_fileNameLength = 255;
 
-const TCHAR target_Cues[NUM_IMAGES][c_fileNameLength] = {
-    "UNIROM.cue",
-};
+TCHAR target_Cues[255][c_fileNameLength];
+
 pseudoatomic<int> g_imageIndex;  // To-do: Implement a console side menu to select the cue file
+pseudoatomic<int> g_listingMode;
 
-static constexpr picostation::DiscImage::DataLocation s_dataLocation = picostation::DiscImage::DataLocation::SDCard;
+picostation::DiscImage::DataLocation s_dataLocation = picostation::DiscImage::DataLocation::RAM;
 static FATFS s_fatFS;
 
 constexpr std::array<uint16_t, 1176> picostation::I2S::generateScramblingLUT() {
@@ -72,6 +73,68 @@ void picostation::I2S::mountSDCard() {
         panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
     }
 }
+const unsigned int c_userDataSize = 2324;
+uint8_t directoryListing[2352] = {0};
+uint8_t directoryBuffer[2352] = {0};
+uint8_t filteredCues[2352] = {0};
+picostation::FileSystem fileSystem;
+
+#define MAX_LINES 2000 
+#define MAX_LENGTH 255
+
+void parseLines(char *dataBuffer,char *filteredCues, TCHAR lines[MAX_LINES][MAX_LENGTH], int *lineCount) {
+    if (!dataBuffer) {
+        return;
+    }
+
+    *lineCount = 0;  
+    char *start = dataBuffer;
+    char *end = dataBuffer;
+
+    while (*start != '\0' && *lineCount < MAX_LINES) {
+        // Find the end of the line
+        while (*end != '\n' && *end != '\0') {
+            end++;
+        }
+
+        // Calculate length
+        int length = end - start;
+        if (length >= MAX_LENGTH) {
+            length = MAX_LENGTH - 1;
+        }
+        char cueBuffer[5] = "euc.";
+        
+
+            char temp[MAX_LENGTH];
+            for (int i = 0; i < length; i++) {
+                temp[i] = start[length - 1 - i];
+            }
+            temp[length] = '\0';
+        if (temp[0] == cueBuffer[0] && temp[1] == cueBuffer[1] && temp[2] == cueBuffer[2] && temp[3] == cueBuffer[3]){
+            
+            for (int i = 0; i < length; i++) {
+                lines[*lineCount+1][i] = start[i];
+
+            }
+            strncat(filteredCues, start, length);
+            strcat(filteredCues, "\n");
+
+            lines[*lineCount+1][length] = '\0'; // Null-terminator add
+            printf("cue dosyası!= %s\n", lines[*lineCount+1]);
+            (*lineCount)++;
+        }
+        
+
+        
+
+        // Next line 
+        if (*end == '\n') {
+            end++;
+        }
+        start = end;
+    }
+    printf("filteredCues!=\n %s\n", filteredCues);
+} 
 
 int picostation::I2S::initDMA(const volatile void *read_addr, unsigned int transfer_count) {
     int channel = dma_claim_unused_channel(true);
@@ -105,6 +168,7 @@ int picostation::I2S::initDMA(const volatile void *read_addr, unsigned int trans
     int filesinDir = 0;
 
     g_imageIndex = 0;
+    g_listingMode = 0;
 
     mountSDCard();
 
@@ -127,7 +191,15 @@ int picostation::I2S::initDMA(const volatile void *read_addr, unsigned int trans
     unsigned sectorCount = 0;
     unsigned cacheHitCount = 0;
 #endif
+    fileSystem.readDirectoryToBuffer(directoryListing, "/", 0, c_userDataSize);
+    printf("directorylisting:\n%s", directoryListing);
 
+    char lines[MAX_LINES][MAX_LENGTH];
+    int lineCount = 0;
+    parseLines((char *)directoryListing, (char *)filteredCues, target_Cues, &lineCount);
+
+
+    int firstboot = 1;
     while (true) {
         // Update latching, output SENS
 
@@ -140,11 +212,23 @@ int picostation::I2S::initDMA(const volatile void *read_addr, unsigned int trans
         const int imageIndex = g_imageIndex.Load();
 
         // Hacky load image from target data location
+        
         if (loadedImageIndex != imageIndex) {
+            if(firstboot == 1){
+                printf("first boot!\n");
+                firstboot = 0;
+            } else {
+                printf("change to SD!\n");
+                s_dataLocation = picostation::DiscImage::DataLocation::SDCard;
+            }
+            printf("image changed! %d\n",loadedImageIndex);
             if (s_dataLocation == picostation::DiscImage::DataLocation::SDCard) {
                 g_discImage.load(target_Cues[imageIndex]);
+                printf("get from SD!\n");
             } else if (s_dataLocation == picostation::DiscImage::DataLocation::RAM) {
                 g_discImage.makeDummyCue();
+                printf("get from ram!\n");
+                
             }
 
             loadedImageIndex = imageIndex;
@@ -178,16 +262,31 @@ int picostation::I2S::initDMA(const volatile void *read_addr, unsigned int trans
                     break;
                 }
             }
+            
 
             if (cache_hit == -1) {
                 g_discImage.readSector(cdSamples[roundRobinCacheIndex], currentSector - c_leadIn, s_dataLocation);
-
                 cachedSectors[roundRobinCacheIndex] = currentSector;
                 cache_hit = roundRobinCacheIndex;
                 roundRobinCacheIndex = (roundRobinCacheIndex + 1) % c_sectorCacheSize;
             }
 
-            int16_t const *sectorData = reinterpret_cast<int16_t *>(cdSamples[cache_hit]);
+
+                        // Copy CD samples to PIO buffer
+                if((currentSector - c_leadIn - c_preGap == 100) && g_listingMode.Load() == 1){
+                    g_listingMode = 0;
+
+                    g_discImage.buildSector(currentSector-c_leadIn,directoryBuffer ,filteredCues);
+                    printf("Sector 100 load\n");
+                    printf("currentSector: %i\n", currentSector);
+                    printf("c_leadin: %i\n", c_leadIn);
+                    printf("c_preGap: %i\n", c_preGap);
+                    printf("c_sectorCacheSize: %i\n",c_sectorCacheSize);
+                    //printf("%.*s\n", 2324, (char*)(directoryBuffer + 24));
+
+                    memcpy(&cdSamples[cache_hit], &directoryBuffer, 2352);
+                }
+                int16_t const *sectorData = reinterpret_cast<int16_t *>(cdSamples[cache_hit]);
 
             // Copy CD samples to PIO buffer
             for (size_t i = 0; i < c_cdSamplesSize * 2; i++) {
