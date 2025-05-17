@@ -14,6 +14,17 @@ endif()
 # ====================================================================================
 set(PICO_BOARD pico CACHE STRING "Board type")
 
+if(NOT DEFINED PICOSTATION_VARIANT)
+    if(PICO_BOARD EQUAL pico2)
+        set(PICOSTATION_VARIANT "picostation_pico2")
+    else()
+        set(PICOSTATION_VARIANT "picostation_pico1")
+    endif()
+    message(STATUS "NOTE: PicoStation variant not defined. Using ${PICOSTATION_VARIANT}")
+endif()
+
+include(boards/picostation_variant.cmake)
+
 cmake_minimum_required(VERSION 3.24.1)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,14 +32,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(pico_sdk_import.cmake)
 
-project(picostation)
+project(${PROJECT_NAME})
 
 pico_sdk_init()
 
-add_executable(picostation)
+add_executable(${PROJECT_NAME})
 
 target_compile_definitions(
-    picostation PUBLIC
+    ${PROJECT_NAME} PUBLIC
     PICO_DEFAULT_UART=0
     PICO_DEFAULT_UART_TX_PIN=0
     PICO_DEFAULT_UART_RX_PIN=1
@@ -36,7 +47,8 @@ target_compile_definitions(
     MAXINDEX=2
 )
 
-target_sources(picostation PRIVATE
+target_sources(
+    ${PROJECT_NAME} PRIVATE
     src/cmd.cpp
     src/disc_image.cpp
     src/drive_mechanics.cpp
@@ -55,7 +67,8 @@ target_sources(picostation PRIVATE
     third_party/posix_file.c
 )
 
-target_include_directories(picostation PRIVATE
+target_include_directories(
+    ${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/include
     ${CMAKE_CURRENT_LIST_DIR}/third_party
@@ -64,11 +77,12 @@ target_include_directories(picostation PRIVATE
 add_subdirectory(third_party/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src build)
 add_subdirectory(third_party/RP2040_Pseudo_Atomic)
 
-pico_enable_stdio_usb(picostation 1)
+pico_enable_stdio_usb(${PROJECT_NAME} 1)
 
-pico_generate_pio_header(picostation ${CMAKE_CURRENT_LIST_DIR}/pio/main.pio)
+pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/pio/main.pio)
 
-target_link_libraries(picostation PRIVATE
+target_link_libraries(
+    ${PROJECT_NAME} PRIVATE
     hardware_dma
     hardware_pio
     hardware_pwm
@@ -83,4 +97,4 @@ target_include_directories(no-OS-FatFS-SD-SDIO-SPI-RPi-Pico BEFORE INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
-pico_add_extra_outputs(picostation)
+pico_add_extra_outputs(${PROJECT_NAME})

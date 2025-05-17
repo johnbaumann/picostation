@@ -5,29 +5,31 @@
 
 #include "hardware/pio.h"
 
+#include "picostation_pinout.h"
+
 // GPIO pinouts
 namespace Pin {
 enum : unsigned int {
-    XLAT = 0,
-    SQCK = 1,
-    LMTSW = 2,
-    SCEX_DATA = 4,  // UART1 TX
-    DOOR = 6,
-    RESET = 7,
-    SD_MISO = 8,   // SPI1 RX
-    SD_CS = 9,     // SPI1 CSn
-    SD_SCK = 10,   // SPI1 SCK
-    SD_MOSI = 11,  // SPI1 TX
-    SENS = 14,
-    DA15 = 15,
-    DA16 = 16,
-    LRCK = 17,
-    SCOR = 18,
-    SQSO = 19,
-    CLK = 21,
-    LED = 25,
-    CMD_DATA = 26,
-    CMD_CK = 27
+    XLAT = GPIO_XLAT,
+    SQCK = GPIO_SQCK,
+    LMTSW = GPIO_LMTSW,
+    SCEX_DATA = GPIO_SCEX_DATA,  // UART1 TX
+    DOOR = GPIO_DOOR,
+    RESET = GPIO_RESET,
+    SD_MISO = GPIO_SD_MISO,   // SPI1 RX
+    SD_CS = GPIO_SD_CS,     // SPI1 CSn
+    SD_SCK = GPIO_SD_SCK,   // SPI1 SCK
+    SD_MOSI = GPIO_SD_MOSI,  // SPI1 TX
+    SENS = GPIO_SENS,
+    DA15 = GPIO_DA15,
+    DA16 = GPIO_DA16,
+    LRCK = GPIO_LRCK,
+    SCOR = GPIO_SCOR,
+    SQSO = GPIO_SQSO,
+    CLK = GPIO_CLK,
+    LED = GPIO_LED,
+    CMD_DATA = GPIO_CMD_DATA,
+    CMD_CK = GPIO_CMD_CK
 };
 constexpr unsigned int allPins[] = {XLAT, SQCK, LMTSW, SCEX_DATA, DOOR, RESET,    SENS,  DA15,
                                     DA16, LRCK, SCOR,  SQSO,      CLK,  CMD_DATA, CMD_CK};

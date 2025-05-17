@@ -1,0 +1,66 @@
+name: Bundle PicoStation
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    
+  workflow_dispatch:
+  
+jobs:
+  build:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Dependancies
+        run: sudo apt install cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
+      - name: Get Pico SDK
+        run: git clone --branch 2.1.1 --recurse-submodules https://github.com/raspberrypi/pico-sdk.git
+
+      - name: Create Build Folder
+        run: |
+          mkdir build
+          mkdir output
+
+      - name: Build PicoStation Pico1
+        run: |
+          cd ${{ github.workspace }}/build
+          rm -fr ./*
+          cmake -DPICO_SDK_PATH=${{ github.workspace }}/pico-sdk -DPICOSTATION_VARIANT=picostation_pico1 .. 
+          cmake --build .
+          cp ${{ github.workspace }}/build/picostation_pico1.uf2 ${{ github.workspace }}/output/picostation_pico1.uf2
+
+          
+      - name: Build PicoStation Pico2
+        run: |
+          cd ${{ github.workspace }}/build
+          rm -fr ./*
+          cmake -DPICO_SDK_PATH=${{ github.workspace }}/pico-sdk -DPICOSTATION_VARIANT=picostation_pico2 .. 
+          cmake --build .
+          cp ${{ github.workspace }}/build/picostation_pico2.uf2 ${{ github.workspace }}/output/picostation_pico2.uf2
+
+      - name: List Files
+        run: ls ${{ github.workspace }}/build
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          draft: true
+          files: |
+            ${{ github.workspace }}/output/*.uf2
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ${{ github.workspace }}/output/*.uf2
+
