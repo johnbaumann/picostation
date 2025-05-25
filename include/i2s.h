@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include <array>
-
+#include "ff.h"
 #include "pseudo_atomics.h"
 
 namespace picostation {
@@ -22,7 +22,8 @@ class I2S {
     int initDMA(const volatile void *read_addr, unsigned int transfer_count);  // Returns DMA channel number
     void mountSDCard();
     void reset();
-
+    void readItems(uint8_t* directoryListing, const char *path,const size_t offset);
+    void readFolders(uint8_t* folderListing, const char *path,const size_t offset);
     pseudoatomic<int> m_sectorSending;
     pseudoatomic<uint64_t> m_lastSectorTime;
 };

@@ -20,7 +20,13 @@
 #endif
 
 extern pseudoatomic<int> g_imageIndex;
-extern pseudoatomic<int> g_listingMode;
+extern pseudoatomic<int> g_directoryIndex;
+extern pseudoatomic<int> g_imageChangeFlag;
+extern pseudoatomic<int> g_dirChangeFlag;
+extern pseudoatomic<int> g_gameListingMode;
+extern pseudoatomic<int> g_dirListingMode;
+extern pseudoatomic<int> g_goBack;
+
 
 inline void picostation::MechCommand::audioControl(const uint32_t latched) {
     const uint32_t pct2_bit = (1 << 14);
@@ -127,18 +133,29 @@ inline void picostation::MechCommand::autoSequence(const uint32_t latched)  // $
 inline void picostation::MechCommand::customCommand(const uint32_t latched) {
     const uint32_t subCommand = (latched & 0x0F0000) >> 16;
     const uint32_t arg = (latched & 0xFFFF);
-    printf("Custom command: %x %x\n", subCommand, arg);
+    //printf("Custom command: %x %x\n", subCommand, arg);
     switch (subCommand) {
         case 0x0:
-            g_fileListingState = FileListingStates::IDLE;
+            printf("directory change: %x %x\n", subCommand, arg);
+            g_directoryIndex = arg;
+            g_dirChangeFlag = 1;
             break;
         case 0x1:
-            g_listingMode = 1;
-            g_fileListingState = FileListingStates::GETDIRECTORY;
+            printf("Game listing %x %x\n");
+            g_gameListingMode = 1;
             break;
         case 0x2:
-        printf("disc image change: %x %x\n", subCommand, arg);
+            printf("disc image change: %x %x\n", subCommand, arg);
             g_imageIndex = arg;
+            g_imageChangeFlag = 1;
+            break;
+        case 0x3:
+            printf("Dir listing: %x %x\n", subCommand, arg);
+            g_dirListingMode = 1;
+            break;
+        case 0x4:
+            printf("Go back directory: %x %x\n", subCommand, arg);
+            g_goBack = 1;
             break;
         case 0xa:
             if (arg == 0xBEEF) {

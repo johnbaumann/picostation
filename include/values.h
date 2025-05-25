@@ -78,7 +78,8 @@ constexpr int c_sectorMin = 0;
 constexpr int c_sectorMax = 333000;  // 74:00:00
 
 constexpr unsigned int c_MaxTrackMoveTime = 15;    // uS
-constexpr unsigned int c_MaxSubqDelayTime = 5410;  // uS
+constexpr unsigned int c_MaxSubqDelayTime = 3333;  // uS
+
 
 constexpr size_t c_cdSamplesSize = 588;
 constexpr size_t c_cdSamplesBytes = c_cdSamplesSize * 2 * 2;  // 2352

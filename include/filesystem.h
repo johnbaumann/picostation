@@ -22,8 +22,12 @@ class FileSystem {
     void init();
     int getNumberofFileEntries(const char *dir);
     void readDirectoryToBuffer(void *buffer, const char *path, const size_t offset, const unsigned int bufferSize);
+    void readCuesToBuffer(void *buffer, const char *path, const size_t offset, const unsigned int bufferSize);
+    void getCueName(const char *path,TCHAR lines[MAX_LENGTH], int imageIndex, const size_t offset, const unsigned int bufferSize);
     void setDirectory(const char *dir);
-    
+    void readDirsToBuffer(void *buffer, const char *path, const size_t offset, const unsigned int bufferSize);
+    void getDirName(const char *path,TCHAR lines[MAX_LENGTH], int directoryIndex, const size_t offset, const unsigned int bufferSize);
+
   private:
     int m_fileCount = -1;
     char m_cwdbuf[c_fileNameLength] = "/";
